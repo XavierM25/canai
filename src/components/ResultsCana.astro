@@ -188,12 +188,20 @@
     
     // Función para descargar los datos como archivo JSON
     function downloadJSON(data) {
-        // Crear una copia de los datos para modificar la URL de la imagen si es necesario
-        const jsonData = {...data};
+        // Crear una copia de los datos para transformar a la nueva estructura
+        const jsonData = {
+            "altura_de_la_cana": data.length_cm,
+            "numero_de_nudos": data.num_knots,
+            "es_una_cana": true
+        };
         
-        // Si hay una URL de imagen, asegurarse de que sea una URL completa
-        if (jsonData.image_debug_url && !jsonData.image_debug_url.startsWith('http')) {
-            jsonData.image_debug_url = `http://127.0.0.1:8000${jsonData.image_debug_url}`;
+        // Transformar el array de alturas de nudos a un objeto con claves numeradas
+        if (data.knot_thickness_cm && data.knot_thickness_cm.length > 0) {
+            jsonData.altura_de_nudos = {};
+            
+            for (let i = 0; i < data.knot_thickness_cm.length; i++) {
+                jsonData.altura_de_nudos[`nudo_${i + 1}`] = data.knot_thickness_cm[i];
+            }
         }
         
         // Convertir los datos a una cadena JSON con formato legible

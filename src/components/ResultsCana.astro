@@ -3,6 +3,15 @@
         <div id="image-container" class="w-[448px] h-[568px] bg-[#D9D9D9] justify-center items-center flex rounded-xl">
             <img src="/icons/image.svg" class="h-auto w-18" alt="">
         </div>
+        <!-- Solo botón de descarga JSON -->
+        <div class="flex justify-center">
+            <button id="download-json" class="bg-[#0073F6] text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Descargar JSON
+            </button>
+        </div>
     </aside>
     <article class="space-y-16 max-w-xl text-[#454545]">
         <img src="/iconCanAI.svg" class="w-auto h-18 mx-auto" alt="">
@@ -13,13 +22,13 @@
             </div>
 
             <div id="tabla" class="hidden grid grid-cols-2 grid-rows-8 gap-0 border rounded-2xl">
-                <div class="border p-2.5 text-center font-bold rounded-tl-2xl">Nudos:</div>
-                <div class="col-start-1 row-start-2 border p-2.5 text-center font-bold">Entrenudos:</div>
-                <div class="col-start-1 row-start-3 border p-2.5 text-center font-bold">Distancia entre nudos:</div>
-                <div class="col-start-1 row-start-4 border p-2.5 text-center font-bold">Largo de nudo:</div>
-                <div class="col-start-1 row-start-5 border p-2.5 text-center font-bold">Grosor de nudo:</div>
-                <div class="col-start-1 row-start-6 border p-2.5 text-center font-bold">Altura de caña (con corbatura):</div>
-                <div class="col-start-1 row-start-7 border p-2.5 text-center font-bold">Altura de caña (sin corbatura):</div>
+                <div class="border p-2.5 text-center font-bold rounded-tl-2xl">Altura de caña:</div>
+                <div class="col-start-1 row-start-2 border p-2.5 text-center font-bold">Cantidad de nudos:</div>
+                <div class="col-start-1 row-start-3 border p-2.5 text-center font-bold">Altura de nudo 1:</div>
+                <div class="col-start-1 row-start-4 border p-2.5 text-center font-bold">Altura de nudo 2:</div>
+                <div class="col-start-1 row-start-5 border p-2.5 text-center font-bold">Altura de nudo 3:</div>
+                <div class="col-start-1 row-start-6 border p-2.5 text-center font-bold">Altura de nudo 4:</div>
+                <div class="col-start-1 row-start-7 border p-2.5 text-center font-bold">Altura de nudo 5:</div>
                 <div class="col-start-1 row-start-8 border p-2.5 text-center font-bold rounded-bl-2xl">¿Es una caña?:</div>
                 <div id="cell-1" class="col-start-2 row-start-1 border text-center p-2.5 rounded-tr-2xl"></div>
                 <div id="cell-2" class="col-start-2 row-start-2 border text-center p-2.5"></div>
@@ -30,12 +39,6 @@
                 <div id="cell-7" class="col-start-2 row-start-7 border text-center p-2.5"></div>
                 <div id="cell-8" class="col-start-2 row-start-8 border text-center p-2.5 rounded-br-2xl"></div>
             </div>
-        </div>
-        <div class="flex items-center gap-12 justify-center">
-            <a href="" class="font-medium w-32 text-center">¿Quieres más detalles?</a>
-            <button id="download-report" class="bg-[#0073F6] text-white flex gap-3 font-bold px-12 py-4 rounded-2xl">
-                <a href="">Descargar informe</a>
-            </button>
         </div>
     </article>
 </main>
@@ -76,6 +79,11 @@
             }
             
             tableElement.classList.add('hidden');
+            
+            // Ocultar botón de descarga en caso de error
+            const downloadJsonBtn = document.getElementById('download-json');
+            if (downloadJsonBtn) downloadJsonBtn.style.display = 'none';
+            
             return;
         }
 
@@ -97,7 +105,7 @@
         
         console.log("Datos para la tabla:", resultData);
         
-        // Valores a colocar aleatoriamente
+        // Valores a colocar en la tabla
         const values = Object.values(resultData);
         
         // Obtener referencias a las celdas
@@ -154,16 +162,51 @@
             console.log("No hay imagen disponible para mostrar");
         }
         
-        // Configurar el botón de descarga
-        const downloadButton = document.getElementById('download-report');
-        if (downloadButton) {
-            downloadButton.addEventListener('click', () => {
-                generatePDF(analysisResult);
+        // Configurar el botón de descarga JSON
+        const downloadJsonBtn = document.getElementById('download-json');
+        if (downloadJsonBtn) {
+            downloadJsonBtn.addEventListener('click', () => {
+                downloadJSON(analysisResult);
             });
         } else {
-            console.error("Botón de descarga no encontrado");
+            console.error("Botón de descarga JSON no encontrado");
         }
     });
+    
+    // Función para descargar los datos como archivo JSON
+    function downloadJSON(data) {
+        // Crear una copia de los datos para modificar la URL de la imagen si es necesario
+        const jsonData = {...data};
+        
+        // Si hay una URL de imagen, asegurarse de que sea una URL completa
+        if (jsonData.image_debug_url && !jsonData.image_debug_url.startsWith('http')) {
+            jsonData.image_debug_url = `http://127.0.0.1:8000${jsonData.image_debug_url}`;
+        }
+        
+        // Convertir los datos a una cadena JSON con formato legible
+        const jsonString = JSON.stringify(jsonData, null, 2);
+        
+        // Crear un objeto Blob con los datos JSON
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        
+        // Crear una URL para el Blob
+        const url = URL.createObjectURL(blob);
+        
+        // Crear un elemento <a> temporal para la descarga
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analisis_caña_${new Date().toISOString().slice(0, 10)}.json`;
+        
+        // Simular clic en el enlace para iniciar la descarga
+        document.body.appendChild(a);
+        a.click();
+        
+        // Limpiar
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log("JSON descargado:", jsonData);
+    }
     
     // Función para crear la tabla dinámicamente por si hay problemas con las celdas
     function createDynamicTable(container, data) {
@@ -208,10 +251,6 @@
         const sum = thicknessArray.reduce((acc, val) => acc + val, 0);
         return `${(sum / thicknessArray.length).toFixed(2)} cm`;
     }
+
     
-    // Función para generar un PDF con los resultados (simulada)
-    function generatePDF(data) {
-        console.log("Generando PDF con datos:", data);
-        alert('Generando informe PDF con los resultados del análisis...');
-    }
 </script>

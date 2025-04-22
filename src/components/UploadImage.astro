@@ -2,18 +2,163 @@
     <article class="space-y-16 max-w-xl">
         <img src="/iconCanAI.svg" class="w-auto h-22 mx-auto" alt="">
         <div class="font-inter flex-col flex justify-center text-center text-[#454545] gap-12 space-y-4">
-                <h1 class="font-semibold text-4xl mb-2">Sube una imagen de caña de azucar</h1>
-            <button class="bg-[#D9D9D9] flex gap-3 font-bold px-6.5 py-4.5 rounded-2xl shadow-lg mx-auto cursor-pointer">
+            <h1 class="font-semibold text-4xl mb-2">Sube una imagen de caña de azucar</h1>
+            <label for="file-upload" id="upload" class="bg-[#D9D9D9] flex gap-3 font-bold px-6.5 py-4.5 rounded-2xl shadow-lg mx-auto cursor-pointer">
                 <img src="/icons/folder.svg" alt="">
-                <a href="">Seleccionar Imagen</a>
-            </button>
+                <span>Seleccionar Imagen</span>
+            </label>
+            <input type="file" id="file-upload" accept="image/*" class="hidden" />
             <span class="max-w-sm text-center mx-auto opacity-50">¡Asegúrate de que la caña esté visible y en buena calidad!</span>
         </div>
     </article>
     <aside class="space-y-10">
-        <div class="w-[530px] h-[500px] bg-[#D9D9D9] justify-center items-center flex rounded-xl">
+        <div id="image" class="relative w-[530px] h-[500px] bg-[#D9D9D9] justify-center items-center flex rounded-xl">
             <img src="/icons/image.svg" class="h-auto w-18" alt="">
         </div>
-        <button class="bg-[#BDBDBD] text-white flex gap-3 font-bold px-12 py-4 rounded-2xl mx-auto"><a href="">Iniciar Análisis</a></button>
+        <button id="analyze" class="bg-[#BDBDBD] text-white flex gap-3 font-bold px-12 py-4 rounded-2xl mx-auto cursor-not-allowed" disabled>
+            <span>Iniciar Análisis</span>
+        </button>
     </aside>
 </main>
+
+<script>
+  let selectedFile = null;
+  const fileInput = document.getElementById('file-upload');
+  const imageContainer = document.getElementById('image');
+  const analyzeButton = document.getElementById('analyze');
+
+  // Manejar la selección de archivo usando el input file nativo
+  fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      selectedFile = file;
+      displaySelectedImage(file);
+    }
+  });
+
+  function displaySelectedImage(file) {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      // Limpiar el contenedor
+      imageContainer.innerHTML = '';
+
+      // Crear la imagen de previsualización
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.alt = 'Imagen subida';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.classList.add('rounded-xl');
+
+      // Crear el botón de eliminación
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'X';
+      deleteButton.style.fontFamily = 'Inter';
+      deleteButton.style.position = 'absolute';
+      deleteButton.style.top = '10px';
+      deleteButton.style.right = '10px';
+      deleteButton.style.backgroundColor = '#ff4d4d';
+      deleteButton.style.color = '#fff';
+      deleteButton.style.border = 'none';
+      deleteButton.style.borderRadius = '50%';
+      deleteButton.style.width = '30px';
+      deleteButton.style.height = '30px';
+      deleteButton.style.cursor = 'pointer';
+      deleteButton.style.display = 'flex';
+      deleteButton.style.justifyContent = 'center';
+      deleteButton.style.alignItems = 'center';
+      deleteButton.style.fontSize = '16px';
+      deleteButton.style.fontWeight = 'bold';
+
+      // Manejar el clic en el botón de eliminación
+      deleteButton.addEventListener('click', () => {
+        imageContainer.innerHTML = '';
+        imageContainer.innerHTML = '<img src="/icons/image.svg" class="h-auto w-18" alt="">';
+        selectedFile = null;
+        fileInput.value = '';
+        
+        // Deshabilitar el botón de análisis
+        analyzeButton.disabled = true;
+        analyzeButton.classList.add('cursor-not-allowed');
+        analyzeButton.classList.remove('bg-[#0073F6]');
+        analyzeButton.classList.add('bg-[#BDBDBD]');
+      });
+
+      // Agregar elementos al contenedor
+      imageContainer.appendChild(img);
+      imageContainer.appendChild(deleteButton);
+
+      // Habilitar el botón de análisis
+      analyzeButton.disabled = false;
+      analyzeButton.classList.remove('cursor-not-allowed');
+      analyzeButton.classList.remove('bg-[#BDBDBD]');
+      analyzeButton.classList.add('bg-[#0073F6]');
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  // Analizar la imagen cuando se hace clic en el botón
+  analyzeButton.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    // Mostrar indicador de carga
+    const originalButtonContent = analyzeButton.innerHTML;
+    analyzeButton.innerHTML = '<span class="animate-pulse">Procesando...</span>';
+    analyzeButton.disabled = true;
+    analyzeButton.classList.add('cursor-not-allowed');
+
+    try {
+      console.log("Enviando solicitud al backend con imagen:", selectedFile.name);
+      
+      // Crear FormData para enviar directamente al backend
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      
+      // Enviar la solicitud directamente al backend sin pasar por nuestra API
+      const response = await fetch('http://127.0.0.1:8000/analizar', {
+        method: 'POST',
+        body: formData,
+        // No incluir headers para que el navegador configure el boundary correctamente
+      });
+
+      console.log("Respuesta recibida:", response.status, response.statusText);
+
+      // Leer la respuesta como texto primero para depuración
+      const responseText = await response.text();
+      console.log("Respuesta texto:", responseText);
+      
+      // Convertir el texto a JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Error al parsear la respuesta como JSON: ${responseText.substring(0, 100)}...`);
+      }
+      
+      console.log("Resultado procesado:", result);
+      
+      // Guardar el resultado en sessionStorage
+      sessionStorage.setItem('analysisResult', JSON.stringify(result));
+      
+      // Redireccionar a la página de resultados
+      window.location.href = '/results';
+    } catch (error) {
+      console.error('Error al procesar la imagen:', error);
+      
+      // Restaurar el botón
+      analyzeButton.innerHTML = originalButtonContent;
+      analyzeButton.disabled = false;
+      analyzeButton.classList.remove('cursor-not-allowed');
+      
+      // Mostrar alerta
+      alert(`Error al procesar la imagen: ${error.message || 'Error desconocido'}`);
+      
+      // Guardar el error en sessionStorage
+      sessionStorage.setItem('analysisResult', JSON.stringify({ 
+        error: error.message || 'Error al procesar la imagen' 
+      }));
+    }
+  });
+</script>

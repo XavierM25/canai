@@ -1,36 +1,217 @@
 <main class="min-h-screen justify-center items-center gap-64 flex max-w-screen mx-auto ">
     <aside class="space-y-10">
-        <div class="w-[448px] h-[568px] bg-[#D9D9D9] justify-center items-center flex rounded-xl">
+        <div id="image-container" class="w-[448px] h-[568px] bg-[#D9D9D9] justify-center items-center flex rounded-xl">
             <img src="/icons/image.svg" class="h-auto w-18" alt="">
         </div>
     </aside>
     <article class="space-y-16 max-w-xl text-[#454545]">
         <img src="/iconCanAI.svg" class="w-auto h-18 mx-auto" alt="">
-        <h1 class="font-semibold text-3xl mb-2 text-center">Resultados del análisis</h1>
-        <div>
+        <h1 id="result-title" class="font-semibold text-3xl mb-2 text-center">Resultados del análisis</h1>
+        <div id="result-container">
+            <div id="error-message" class="hidden">
+                <h1 class="font-semibold text-2xl mb-4 text-center text-red-500"></h1>
+            </div>
 
-<div class="grid grid-cols-2 grid-rows-8 gap-0 border rounded-2xl">
-    <div class="border p-2.5 text-center font-bold rounded-tl-2xl">Nudos:</div>
-    <div class="col-start-1 row-start-2 border p-2.5 text-center font-bold">Entrenudos:</div>
-    <div class="col-start-1 row-start-3 border p-2.5 text-center font-bold">Distancia entre nudos:</div>
-    <div class="col-start-1 row-start-4 border p-2.5 text-center font-bold">Largo de nudo:</div>
-    <div class="col-start-1 row-start-5 border p-2.5 text-center font-bold">Grosor de nudo:</div>
-    <div class="col-start-1 row-start-6 border p-2.5 text-center font-bold">Altura de caña (con corvatura):</div>
-    <div class="col-start-1 row-start-7 border p-2.5 text-center font-bold">Altura de caña (sin corvatura):</div>
-    <div class="col-start-1 row-start-8 border p-2.5 text-center font-bold rounded-bl-2xl">¿Es una caña?:</div>
-    <div class="col-start-2 row-start-1 border text-center p-2.5 rounded-tr-2xl">9</div>
-    <div class="col-start-2 row-start-2 border text-center p-2.5">10</div>
-    <div class="col-start-2 row-start-3 border text-center p-2.5">11</div>
-    <div class="col-start-2 row-start-4 border text-center p-2.5">12</div>
-    <div class="col-start-2 row-start-5 border text-center p-2.5">13</div>
-    <div class="col-start-2 row-start-6 border text-center p-2.5">14</div>
-    <div class="col-start-2 row-start-7 border text-center p-2.5">15</div>
-    <div class="border text-center p-2.5 rounded-br-2xl">16</div>
-</div>
+            <div id="tabla" class="hidden grid grid-cols-2 grid-rows-8 gap-0 border rounded-2xl">
+                <div class="border p-2.5 text-center font-bold rounded-tl-2xl">Nudos:</div>
+                <div class="col-start-1 row-start-2 border p-2.5 text-center font-bold">Entrenudos:</div>
+                <div class="col-start-1 row-start-3 border p-2.5 text-center font-bold">Distancia entre nudos:</div>
+                <div class="col-start-1 row-start-4 border p-2.5 text-center font-bold">Largo de nudo:</div>
+                <div class="col-start-1 row-start-5 border p-2.5 text-center font-bold">Grosor de nudo:</div>
+                <div class="col-start-1 row-start-6 border p-2.5 text-center font-bold">Altura de caña (con corbatura):</div>
+                <div class="col-start-1 row-start-7 border p-2.5 text-center font-bold">Altura de caña (sin corbatura):</div>
+                <div class="col-start-1 row-start-8 border p-2.5 text-center font-bold rounded-bl-2xl">¿Es una caña?:</div>
+                <div id="cell-1" class="col-start-2 row-start-1 border text-center p-2.5 rounded-tr-2xl"></div>
+                <div id="cell-2" class="col-start-2 row-start-2 border text-center p-2.5"></div>
+                <div id="cell-3" class="col-start-2 row-start-3 border text-center p-2.5"></div>
+                <div id="cell-4" class="col-start-2 row-start-4 border text-center p-2.5"></div>
+                <div id="cell-5" class="col-start-2 row-start-5 border text-center p-2.5"></div>
+                <div id="cell-6" class="col-start-2 row-start-6 border text-center p-2.5"></div>
+                <div id="cell-7" class="col-start-2 row-start-7 border text-center p-2.5"></div>
+                <div id="cell-8" class="col-start-2 row-start-8 border text-center p-2.5 rounded-br-2xl"></div>
+            </div>
         </div>
-        <div class="flex items-center gap-12  justify-center">
+        <div class="flex items-center gap-12 justify-center">
             <a href="" class="font-medium w-32 text-center">¿Quieres más detalles?</a>
-            <button class="bg-[#0073F6] text-white flex gap-3 font-bold px-12 py-4 rounded-2xl"><a href="">Descargar informe</a></button>
+            <button id="download-report" class="bg-[#0073F6] text-white flex gap-3 font-bold px-12 py-4 rounded-2xl">
+                <a href="">Descargar informe</a>
+            </button>
         </div>
     </article>
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Recuperar los resultados del análisis desde sessionStorage
+        const analysisResultString = sessionStorage.getItem('analysisResult');
+        if (!analysisResultString) {
+            console.log("No hay resultados en sessionStorage");
+            window.location.href = '/'; // Redirigir a la página principal si no hay resultados
+            return;
+        }
+
+        const analysisResult = JSON.parse(analysisResultString);
+        const errorMessageElement = document.getElementById('error-message');
+        const tableElement = document.getElementById('tabla');
+        const imageContainer = document.getElementById('image-container');
+
+        console.log('Datos recibidos en ResultsCana:', analysisResult);
+
+        // Comprobar si hay un error
+        if (analysisResult.error) {
+            console.log("Se detectó un error:", analysisResult.error);
+            errorMessageElement.classList.remove('hidden');
+            
+            // Mostrar el mensaje de error
+            const errorTitle = errorMessageElement.querySelector('h1');
+            if (errorTitle) {
+                errorTitle.textContent = analysisResult.error;
+            } else {
+                console.error("Elemento h1 para mostrar el error no encontrado");
+                // Crear el elemento si no existe
+                const newErrorTitle = document.createElement('h1');
+                newErrorTitle.textContent = analysisResult.error;
+                newErrorTitle.className = "font-semibold text-2xl mb-4 text-center text-red-500";
+                errorMessageElement.appendChild(newErrorTitle);
+            }
+            
+            tableElement.classList.add('hidden');
+            return;
+        }
+
+        // Si no hay error, mostrar los resultados en la tabla
+        console.log("Mostrando resultados en la tabla");
+        tableElement.classList.remove('hidden');
+        
+        // Datos a mostrar en la tabla
+        const resultData = {
+            nudos: analysisResult.num_knots || 'N/A',
+            entrenudos: (analysisResult.num_knots ? analysisResult.num_knots - 1 : 'N/A'),
+            distancia_entre_nudos: 'Variable',
+            largo_nudo: 'Variable',
+            grosor_nudo: getAverageThickness(analysisResult.knot_thickness_cm) || 'N/A',
+            altura_con_curvatura: analysisResult.length_cm ? `${analysisResult.length_cm.toFixed(2)} cm` : 'N/A',
+            altura_sin_curvatura: analysisResult.length_cm ? `${(analysisResult.length_cm * 0.9).toFixed(2)} cm` : 'N/A', // Aproximación
+            es_cana: 'Sí'
+        };
+        
+        console.log("Datos para la tabla:", resultData);
+        
+        // Valores a colocar aleatoriamente
+        const values = Object.values(resultData);
+        
+        // Obtener referencias a las celdas
+        const cells = [];
+        for (let i = 1; i <= 8; i++) {
+            const cell = document.getElementById(`cell-${i}`);
+            if (cell) {
+                cells.push(cell);
+            } else {
+                console.error(`Celda cell-${i} no encontrada`);
+            }
+        }
+        
+        // Verificar si tenemos todas las celdas
+        if (cells.length === 8) {
+            // Asignar valores a celdas
+            for (let i = 0; i < cells.length; i++) {
+                cells[i].textContent = values[i];
+            }
+        } else {
+            console.error("No se encontraron todas las celdas necesarias");
+            // Opción alternativa: crear la tabla dinámicamente
+            createDynamicTable(tableElement, resultData);
+        }
+        
+        // Mostrar la imagen de debug si está disponible
+        if (analysisResult.image_debug_url) {
+            console.log("Mostrando imagen de debug:", analysisResult.image_debug_url);
+            imageContainer.innerHTML = '';
+            
+            // Corregir la URL para que apunte al backend
+            const imageUrl = analysisResult.image_debug_url.startsWith('http') 
+                ? analysisResult.image_debug_url 
+                : `http://127.0.0.1:8000${analysisResult.image_debug_url}`;
+            
+            console.log("URL corregida de la imagen:", imageUrl);
+            
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.alt = 'Análisis de caña';
+            img.classList.add('max-w-full', 'max-h-full', 'rounded-xl');
+            imageContainer.appendChild(img);
+        } else if (sessionStorage.getItem('selectedImageDataUrl')) {
+            // Si no hay imagen de debug pero sí tenemos la imagen original seleccionada
+            console.log("Mostrando imagen original seleccionada");
+            imageContainer.innerHTML = '';
+            
+            const img = document.createElement('img');
+            img.src = sessionStorage.getItem('selectedImageDataUrl');
+            img.alt = 'Imagen seleccionada';
+            img.classList.add('max-w-full', 'max-h-full', 'rounded-xl');
+            imageContainer.appendChild(img);
+        } else {
+            console.log("No hay imagen disponible para mostrar");
+        }
+        
+        // Configurar el botón de descarga
+        const downloadButton = document.getElementById('download-report');
+        if (downloadButton) {
+            downloadButton.addEventListener('click', () => {
+                generatePDF(analysisResult);
+            });
+        } else {
+            console.error("Botón de descarga no encontrado");
+        }
+    });
+    
+    // Función para crear la tabla dinámicamente por si hay problemas con las celdas
+    function createDynamicTable(container, data) {
+        if (!container) return;
+        
+        // Limpiar el contenedor
+        container.innerHTML = '';
+        container.classList.remove('hidden');
+        container.classList.add('border', 'rounded-2xl');
+        
+        const labels = [
+            "Nudos:", "Entrenudos:", "Distancia entre nudos:", 
+            "Largo de nudo:", "Grosor de nudo:", 
+            "Altura de caña (con corvatura):", "Altura de caña (sin corvatura):",
+            "¿Es una caña?:"
+        ];
+        
+        const values = Object.values(data);
+        
+        for (let i = 0; i < labels.length; i++) {
+            const row = document.createElement('div');
+            row.classList.add('grid', 'grid-cols-2', 'border-b');
+            
+            const labelCell = document.createElement('div');
+            labelCell.classList.add('border-r', 'p-2.5', 'text-center', 'font-bold');
+            labelCell.textContent = labels[i];
+            
+            const valueCell = document.createElement('div');
+            valueCell.classList.add('p-2.5', 'text-center');
+            valueCell.textContent = values[i];
+            
+            row.appendChild(labelCell);
+            row.appendChild(valueCell);
+            container.appendChild(row);
+        }
+    }
+    
+    // Función para calcular el grosor promedio de los nudos
+    function getAverageThickness(thicknessArray) {
+        if (!thicknessArray || thicknessArray.length === 0) return 'N/A';
+        
+        const sum = thicknessArray.reduce((acc, val) => acc + val, 0);
+        return `${(sum / thicknessArray.length).toFixed(2)} cm`;
+    }
+    
+    // Función para generar un PDF con los resultados (simulada)
+    function generatePDF(data) {
+        console.log("Generando PDF con datos:", data);
+        alert('Generando informe PDF con los resultados del análisis...');
+    }
+</script>

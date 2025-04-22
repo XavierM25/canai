@@ -21,23 +21,8 @@
                 <h1 class="font-semibold text-2xl mb-4 text-center text-red-500"></h1>
             </div>
 
-            <div id="tabla" class="hidden grid grid-cols-2 grid-rows-8 gap-0 border rounded-2xl">
-                <div class="border p-2.5 text-center font-bold rounded-tl-2xl">Altura de caña:</div>
-                <div class="col-start-1 row-start-2 border p-2.5 text-center font-bold">Cantidad de nudos:</div>
-                <div class="col-start-1 row-start-3 border p-2.5 text-center font-bold">Altura de nudo 1:</div>
-                <div class="col-start-1 row-start-4 border p-2.5 text-center font-bold">Altura de nudo 2:</div>
-                <div class="col-start-1 row-start-5 border p-2.5 text-center font-bold">Altura de nudo 3:</div>
-                <div class="col-start-1 row-start-6 border p-2.5 text-center font-bold">Altura de nudo 4:</div>
-                <div class="col-start-1 row-start-7 border p-2.5 text-center font-bold">Altura de nudo 5:</div>
-                <div class="col-start-1 row-start-8 border p-2.5 text-center font-bold rounded-bl-2xl">¿Es una caña?:</div>
-                <div id="cell-1" class="col-start-2 row-start-1 border text-center p-2.5 rounded-tr-2xl"></div>
-                <div id="cell-2" class="col-start-2 row-start-2 border text-center p-2.5"></div>
-                <div id="cell-3" class="col-start-2 row-start-3 border text-center p-2.5"></div>
-                <div id="cell-4" class="col-start-2 row-start-4 border text-center p-2.5"></div>
-                <div id="cell-5" class="col-start-2 row-start-5 border text-center p-2.5"></div>
-                <div id="cell-6" class="col-start-2 row-start-6 border text-center p-2.5"></div>
-                <div id="cell-7" class="col-start-2 row-start-7 border text-center p-2.5"></div>
-                <div id="cell-8" class="col-start-2 row-start-8 border text-center p-2.5 rounded-br-2xl"></div>
+            <div id="results-table" class="hidden border rounded-2xl">
+                <!-- La tabla se generará dinámicamente con JavaScript -->
             </div>
         </div>
     </article>
@@ -55,7 +40,7 @@
 
         const analysisResult = JSON.parse(analysisResultString);
         const errorMessageElement = document.getElementById('error-message');
-        const tableElement = document.getElementById('tabla');
+        const tableElement = document.getElementById('results-table');
         const imageContainer = document.getElementById('image-container');
 
         console.log('Datos recibidos en ResultsCana:', analysisResult);
@@ -87,49 +72,11 @@
             return;
         }
 
-        // Si no hay error, mostrar los resultados en la tabla
-        console.log("Mostrando resultados en la tabla");
-        tableElement.classList.remove('hidden');
+        // Si no hay error, generar la tabla dinámicamente
+        console.log("Generando tabla dinámica de resultados");
         
-        // Datos a mostrar en la tabla
-        const resultData = {
-            nudos: analysisResult.num_knots || 'N/A',
-            entrenudos: (analysisResult.num_knots ? analysisResult.num_knots - 1 : 'N/A'),
-            distancia_entre_nudos: 'Variable',
-            largo_nudo: 'Variable',
-            grosor_nudo: getAverageThickness(analysisResult.knot_thickness_cm) || 'N/A',
-            altura_con_curvatura: analysisResult.length_cm ? `${analysisResult.length_cm.toFixed(2)} cm` : 'N/A',
-            altura_sin_curvatura: analysisResult.length_cm ? `${(analysisResult.length_cm * 0.9).toFixed(2)} cm` : 'N/A', // Aproximación
-            es_cana: 'Sí'
-        };
-        
-        console.log("Datos para la tabla:", resultData);
-        
-        // Valores a colocar en la tabla
-        const values = Object.values(resultData);
-        
-        // Obtener referencias a las celdas
-        const cells = [];
-        for (let i = 1; i <= 8; i++) {
-            const cell = document.getElementById(`cell-${i}`);
-            if (cell) {
-                cells.push(cell);
-            } else {
-                console.error(`Celda cell-${i} no encontrada`);
-            }
-        }
-        
-        // Verificar si tenemos todas las celdas
-        if (cells.length === 8) {
-            // Asignar valores a celdas
-            for (let i = 0; i < cells.length; i++) {
-                cells[i].textContent = values[i];
-            }
-        } else {
-            console.error("No se encontraron todas las celdas necesarias");
-            // Opción alternativa: crear la tabla dinámicamente
-            createDynamicTable(tableElement, resultData);
-        }
+        // Llamar a la función para crear la tabla dinámica
+        createDynamicTable(tableElement, analysisResult);
         
         // Mostrar la imagen de debug si está disponible
         if (analysisResult.image_debug_url) {
@@ -173,6 +120,72 @@
         }
     });
     
+    // Función para crear la tabla dinámicamente basada en los resultados
+    function createDynamicTable(container, data) {
+        if (!container) return;
+        
+        // Limpiar el contenedor y mostrar
+        container.innerHTML = '';
+        container.classList.remove('hidden');
+        
+        // Grid principal
+        const gridContainer = document.createElement('div');
+        gridContainer.classList.add('grid', 'grid-cols-2', 'gap-0', 'border', 'rounded-2xl');
+        
+        // Altura de caña
+        addRow(gridContainer, "Altura de caña:", 
+               data.length_cm ? `${data.length_cm.toFixed(2)} cm` : 'N/A',
+               true); // Primera fila con esquina superior redondeada
+        
+        // Cantidad de nudos
+        addRow(gridContainer, "Cantidad de nudos:", 
+               data.num_knots || 'N/A');
+        
+        // Filas dinámicas para las alturas de los nudos
+        if (data.knot_thickness_cm && data.knot_thickness_cm.length > 0) {
+            for (let i = 0; i < data.knot_thickness_cm.length; i++) {
+                addRow(gridContainer, `Altura de nudo ${i + 1}:`, 
+                       `${data.knot_thickness_cm[i].toFixed(2)} cm`);
+            }
+        }
+        
+        // Es una caña (última fila)
+        addRow(gridContainer, "¿Es una caña?:", "Sí", false, true); // Última fila con esquina inferior redondeada
+        
+        // Añadir el grid al contenedor
+        container.appendChild(gridContainer);
+    }
+    
+    // Función auxiliar para añadir filas a la tabla
+    function addRow(container, label, value, isFirstRow = false, isLastRow = false) {
+        // Crear celdas
+        const labelCell = document.createElement('div');
+        const valueCell = document.createElement('div');
+        
+        // Agregar clases base
+        labelCell.classList.add('border', 'p-2.5', 'text-center', 'font-bold');
+        valueCell.classList.add('border', 'text-center', 'p-2.5');
+        
+        // Agregar clases de esquinas redondeadas si corresponde
+        if (isFirstRow) {
+            labelCell.classList.add('rounded-tl-2xl');
+            valueCell.classList.add('rounded-tr-2xl');
+        }
+        
+        if (isLastRow) {
+            labelCell.classList.add('rounded-bl-2xl');
+            valueCell.classList.add('rounded-br-2xl');
+        }
+        
+        // Establecer contenido
+        labelCell.textContent = label;
+        valueCell.textContent = value;
+        
+        // Añadir celdas al contenedor
+        container.appendChild(labelCell);
+        container.appendChild(valueCell);
+    }
+    
     // Función para descargar los datos como archivo JSON
     function downloadJSON(data) {
         // Crear una copia de los datos para modificar la URL de la imagen si es necesario
@@ -207,50 +220,4 @@
         
         console.log("JSON descargado:", jsonData);
     }
-    
-    // Función para crear la tabla dinámicamente por si hay problemas con las celdas
-    function createDynamicTable(container, data) {
-        if (!container) return;
-        
-        // Limpiar el contenedor
-        container.innerHTML = '';
-        container.classList.remove('hidden');
-        container.classList.add('border', 'rounded-2xl');
-        
-        const labels = [
-            "Nudos:", "Entrenudos:", "Distancia entre nudos:", 
-            "Largo de nudo:", "Grosor de nudo:", 
-            "Altura de caña (con corvatura):", "Altura de caña (sin corvatura):",
-            "¿Es una caña?:"
-        ];
-        
-        const values = Object.values(data);
-        
-        for (let i = 0; i < labels.length; i++) {
-            const row = document.createElement('div');
-            row.classList.add('grid', 'grid-cols-2', 'border-b');
-            
-            const labelCell = document.createElement('div');
-            labelCell.classList.add('border-r', 'p-2.5', 'text-center', 'font-bold');
-            labelCell.textContent = labels[i];
-            
-            const valueCell = document.createElement('div');
-            valueCell.classList.add('p-2.5', 'text-center');
-            valueCell.textContent = values[i];
-            
-            row.appendChild(labelCell);
-            row.appendChild(valueCell);
-            container.appendChild(row);
-        }
-    }
-    
-    // Función para calcular el grosor promedio de los nudos
-    function getAverageThickness(thicknessArray) {
-        if (!thicknessArray || thicknessArray.length === 0) return 'N/A';
-        
-        const sum = thicknessArray.reduce((acc, val) => acc + val, 0);
-        return `${(sum / thicknessArray.length).toFixed(2)} cm`;
-    }
-
-    
 </script>

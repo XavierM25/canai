@@ -1,148 +1,70 @@
-import type { APIRoute } from 'astro'
+import type { APIRoute } from 'astro';
+
+interface ErrorResponse {
+  detail?: string;
+  message?: string;
+  error?: string;
+}
+
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 export const POST: APIRoute = async ({ request }) => {
     try {
         const formData = await request.formData();
         const imageFile = formData.get('image');
         
-        console.log("Recibiendo archivo:", imageFile ? "Sí" : "No");
-        if (imageFile instanceof File) {
-            console.log("Nombre:", imageFile.name);
-            console.log("Tamaño:", imageFile.size);
-            console.log("Tipo:", imageFile.type);
-        }
+        logFileInfo(imageFile);
         
         if (!imageFile || !(imageFile instanceof File)) {
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    error: 'No se proporcionó una imagen válida'
-                }),
-                {
-                    status: 400,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+            return createJsonResponse({
+                success: false,
+                error: 'No se proporcionó una imagen válida'
+            }, 400);
         }
 
         // Crear un nuevo FormData para enviar al backend
         const backendFormData = new FormData();
-        
-        // Agregar el archivo con el nombre que espera el backend
         backendFormData.append('file', imageFile, imageFile.name);
 
         console.log('Enviando imagen al backend:', imageFile.name, 'tamaño:', imageFile.size, 'tipo:', imageFile.type);
         
-        // Necesitamos usar fetch pero sin enviar headers personalizados para que se establezca
-        // automáticamente el Content-Type correcto para formdata (incluye boundary)
-        const response = await fetch('http://127.0.0.1:8000/analizar', {
-            method: 'POST',
-            body: backendFormData,
-            // NO incluir headers
-        });
+        // Realizar la solicitud al backend
+        try {
+            const response = await fetch(`${BACKEND_URL}/analizar`, {
+                method: 'POST',
+                body: backendFormData,
+            });
 
-        console.log('Respuesta del servidor:', response.status, response.statusText);
+            console.log('Respuesta del servidor:', response.status, response.statusText);
 
-        if (!response.ok) {
-            console.error(
-                'Error del servidor backend:',
-                response.status,
-                response.statusText
-            );
-            
-            let errorMessage = `Error del servidor: ${response.status}`;
-            
-            try {
-                // Intentar obtener el mensaje de error JSON
-                const errorData = await response.json();
-                console.error('Respuesta de error JSON:', errorData);
-                
-                if (errorData.detail) {
-                    errorMessage = errorData.detail;
-                } else if (errorData.message) {
-                    errorMessage = errorData.message;
-                } else if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-                
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        error: errorMessage
-                    }),
-                    {
-                        status: response.status,
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-            } catch (jsonError) {
-                // Si no es JSON, obtener como texto
-                try {
-                    const text = await response.text();
-                    console.error('Respuesta del servidor (texto):', text);
-                    
-                    return new Response(
-                        JSON.stringify({
-                            success: false,
-                            error: `${errorMessage}. Detalle: ${text.substring(0, 200)}`
-                        }),
-                        {
-                            status: response.status,
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
-                } catch (textError) {
-                    // Si no podemos obtener ni JSON ni texto
-                    return new Response(
-                        JSON.stringify({
-                            success: false,
-                            error: `${errorMessage}. No se pudo obtener más detalles del error.`
-                        }),
-                        {
-                            status: response.status,
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
-                }
+            if (!response.ok) {
+                return await handleErrorResponse(response);
             }
+
+            const data = await response.json();
+            console.log('Respuesta exitosa del backend:', data);
+
+            return createJsonResponse(data, 200);
+        } catch (fetchError) {
+            console.error('Error en la comunicación con el backend:', fetchError);
+            return createJsonResponse({
+                success: false,
+                error: fetchError instanceof Error 
+                    ? `Error de comunicación: ${fetchError.message}` 
+                    : 'Error de comunicación con el servidor de análisis'
+            }, 502);
         }
-
-        const data = await response.json();
-        console.log('Respuesta exitosa del backend:', data);
-
-        return new Response(JSON.stringify(data), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
     } catch (error) {
         console.error('Error en el endpoint response-ai:', error);
 
-        return new Response(
-            JSON.stringify({
-                success: false,
-                error: error instanceof Error 
-                    ? `Error: ${error.message}` 
-                    : 'Error desconocido al procesar la solicitud'
-            }),
-            {
-                status: 500,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+        return createJsonResponse({
+            success: false,
+            error: error instanceof Error 
+                ? `Error: ${error.message}` 
+                : 'Error desconocido al procesar la solicitud'
+        }, 500);
     }
-}
+};
 
 export const GET: APIRoute = async ({ request }) => {
     try {
@@ -155,8 +77,8 @@ export const GET: APIRoute = async ({ request }) => {
             });
         }
         
-        // Construir la URL completa al backend
-        const backendUrl = `http://127.0.0.1:8000${imagePath}`;
+        // Construir la URL completa al backend (asegurando que empiece con /)
+        const backendUrl = `${BACKEND_URL}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
         
         console.log('Solicitando imagen del backend:', backendUrl);
         
@@ -192,5 +114,73 @@ export const GET: APIRoute = async ({ request }) => {
                 status: 500
             }
         );
+    }
+};
+
+// Funciones de utilidad
+function logFileInfo(file: unknown): void {
+    console.log("Recibiendo archivo:", file ? "Sí" : "No");
+    if (file instanceof File) {
+        console.log("Nombre:", file.name);
+        console.log("Tamaño:", file.size);
+        console.log("Tipo:", file.type);
+    }
+}
+
+function createJsonResponse(data: object, status: number): Response {
+    return new Response(
+        JSON.stringify(data),
+        {
+            status,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+}
+
+async function handleErrorResponse(response: Response): Promise<Response> {
+    console.error(
+        'Error del servidor backend:',
+        response.status,
+        response.statusText
+    );
+    
+    let errorMessage = `Error del servidor: ${response.status}`;
+    
+    try {
+        // Intentar obtener el mensaje de error JSON
+        const errorData: ErrorResponse = await response.json();
+        console.error('Respuesta de error JSON:', errorData);
+        
+        if (errorData.detail) {
+            errorMessage = errorData.detail;
+        } else if (errorData.message) {
+            errorMessage = errorData.message;
+        } else if (errorData.error) {
+            errorMessage = errorData.error;
+        }
+        
+        return createJsonResponse({
+            success: false,
+            error: errorMessage
+        }, response.status);
+    } catch (jsonError) {
+        // Si no es JSON, obtener como texto
+        try {
+            const text = await response.text();
+            console.error('Respuesta del servidor (texto):', text);
+            
+            return createJsonResponse({
+                success: false,
+                error: `${errorMessage}. Detalle: ${text.substring(0, 200)}`
+            }, response.status);
+        } catch (textError) {
+            // Si no podemos obtener ni JSON ni texto
+            return createJsonResponse({
+                success: false,
+                error: `${errorMessage}. No se pudo obtener más detalles del error.`
+            }, response.status);
+        }
     }
 }
